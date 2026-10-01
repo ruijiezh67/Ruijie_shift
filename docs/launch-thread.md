@@ -25,7 +25,7 @@ Numbers in `{{ }}` get filled from `bench/results-longmemeval/test/summary.md` a
 >
 > And the number I'm not hiding: reading the full history scores 21/21.
 >
-> Raw runs, including the ones I lost to usage limits: https://github.com/ruijiezh67/shift-change/bench
+> Raw runs, including the ones I lost to usage limits: https://github.com/ruijiezh67/Ruijie_shift/bench
 
 *(attach: the figure, `docs/assets/bench.svg`)*
 
@@ -62,9 +62,9 @@ Numbers in `{{ }}` get filled from `bench/results-longmemeval/test/summary.md` a
 **6/ install + limits**
 
 > ```
-> npx skills add ruijiezh67/shift-change
+> npx skills add ruijiezh67/Ruijie_shift
 > ```
-> or `/plugin marketplace add https://github.com/ruijiezh67/shift-change`
+> or `/plugin marketplace add https://github.com/ruijiezh67/Ruijie_shift`
 >
 > Honest limits: a handover is compression. For details buried in a long session, reading the full history still wins (21/21 vs 17/21), and the lead over the next-best skill is one question — not a gap. /compact stays strong while you're in one session. What a handover buys is the part that was never in the code: your corrections, the paths you ruled out, the standards you agreed on.
 

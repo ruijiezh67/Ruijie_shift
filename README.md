@@ -99,7 +99,7 @@ Everything is in [`bench/`](bench/): the method, sessions, questions, raw output
 
 **Claude Code plugin**
 ```
-/plugin marketplace add https://github.com/ruijiezh67/shift-change
+/plugin marketplace add https://github.com/ruijiezh67/Ruijie_shift
 ```
 then
 ```
@@ -108,16 +108,16 @@ then
 
 **Any agent with Agent Skills support**
 ```bash
-npx skills add ruijiezh67/shift-change
+npx skills add ruijiezh67/Ruijie_shift
 ```
 
 **Manual**
 ```bash
-git clone https://github.com/ruijiezh67/shift-change
-cp -r shift-change/skills/* ~/.claude/skills/
+git clone https://github.com/ruijiezh67/Ruijie_shift
+cp -r Ruijie_shift/skills/* ~/.claude/skills/
 ```
 
-**Or just tell your agent:** "Install the skills from https://github.com/ruijiezh67/shift-change"
+**Or just tell your agent:** "Install the skills from https://github.com/ruijiezh67/Ruijie_shift"
 
 ## Usage
 

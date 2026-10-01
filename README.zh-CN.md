@@ -104,7 +104,7 @@
 
 **Claude Code 插件**
 ```
-/plugin marketplace add https://github.com/ruijiezh67/shift-change
+/plugin marketplace add https://github.com/ruijiezh67/Ruijie_shift
 ```
 然后
 ```
@@ -113,16 +113,16 @@
 
 **任何支持 Agent Skills 的 agent**
 ```bash
-npx skills add ruijiezh67/shift-change
+npx skills add ruijiezh67/Ruijie_shift
 ```
 
 **手动安装**
 ```bash
-git clone https://github.com/ruijiezh67/shift-change
-cp -r shift-change/skills/* ~/.claude/skills/
+git clone https://github.com/ruijiezh67/Ruijie_shift
+cp -r Ruijie_shift/skills/* ~/.claude/skills/
 ```
 
-**或者直接跟你的 agent 说：**"帮我安装 https://github.com/ruijiezh67/shift-change 里的 skills"
+**或者直接跟你的 agent 说：**"帮我安装 https://github.com/ruijiezh67/Ruijie_shift 里的 skills"
 
 ## 用法
 
