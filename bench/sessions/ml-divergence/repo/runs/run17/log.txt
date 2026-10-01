@@ -1,0 +1,18 @@
+# run config: lr=1e-5 precision=fp16 data=data/v3.jsonl grad_clip=null
+step     0 loss 2.7607 grad_norm 1.51 lr 1e-5
+step   250 loss 2.6719 grad_norm 1.15 lr 1e-5
+step   500 loss 2.5615 grad_norm 1.27 lr 1e-5
+step   750 loss 2.4636 grad_norm 1.48 lr 1e-5
+step  1000 loss 2.3211 grad_norm 1.07 lr 1e-5
+step  1250 loss 2.2380 grad_norm 1.46 lr 1e-5
+step  1500 loss 2.1490 grad_norm 1.61 lr 1e-5
+step  1750 loss 2.0346 grad_norm 2.97 lr 1e-5
+step  2000 loss 1.9029 grad_norm 5.00 lr 1e-5
+step  2250 loss 1.8250 grad_norm 7.97 lr 1e-5
+step  2500 loss 1.6770 grad_norm 14.40 lr 1e-5
+step  2750 loss 1.6022 grad_norm 24.40 lr 1e-5
+step  3000 loss 1.4695 grad_norm 40.31 lr 1e-5
+step  3012 WARNING non-finite values detected in layer11.attn.softmax
+step  3012 loss nan grad_norm nan lr 1e-5
+step  3013 loss nan grad_norm nan lr 1e-5
+training aborted: loss is NaN for 2 consecutive steps

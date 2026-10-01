@@ -1,0 +1,19 @@
+{
+  "name": "shift-change",
+  "metadata": {
+    "description": "Session handovers for coding agents that keep the soul of the work, verified by a fresh-agent exam."
+  },
+  "owner": {
+    "name": "ruijiezh67",
+    "url": "https://github.com/ruijiezh67"
+  },
+  "plugins": [
+    {
+      "name": "shift-change",
+      "description": "I-PASS handovers for coding agents: /shift-change hands your session to the next one and quizzes a fresh agent on it, /shift-start reads it back before acting, /shift-recover rebuilds a session that died without one, /shift-brief packages a task for a collaborator and cold-start tests the bundle.",
+      "source": "./",
+      "category": "productivity",
+      "tags": ["handover", "handoff", "context", "session", "memory", "research", "collaboration"]
+    }
+  ]
+}

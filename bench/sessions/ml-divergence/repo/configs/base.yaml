@@ -1,0 +1,8 @@
+model: latent-7b-lora
+data: data/v3.jsonl
+lr: 3.0e-5
+warmup_steps: 500
+precision: fp16
+grad_clip: null
+max_steps: 8000
+seed: 17

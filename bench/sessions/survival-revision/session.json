@@ -1,0 +1,32 @@
+{
+  "id": "survival-revision",
+  "summary": "Revising a survival-analysis paper for Nature Communications. Long session with three /compact calls, so almost every fact ends up before a compaction. Includes superseded facts (data file, sensitivity-analysis design, a stale HR), implicit taste (the user rewrites the agent's paragraph instead of stating a rule; later praises a style), and a hypothesis where the user disagrees with the agent.",
+  "turns": [
+    "We're revising our survival-analysis paper for Nature Communications. The revision is due Nov 14, and the editor flagged Reviewer 2's sensitivity analysis as essential. Read reviewer_comments.md and data/README.md and give me a plan.",
+    "Use data/cohort_v2.csv for everything. How many patients and events are in it?",
+    "Draft a short Methods paragraph describing our main Cox model and put it in paper/suggestions.md. Don't edit paper/methods_draft.md directly; proposed text always goes to suggestions.md.",
+    "Replace it with exactly this: 'We fitted cause-specific Cox models adjusted for age, sex and stage (Table 2). Hazard ratios are reported with 95% CIs.'",
+    "Report format, always: HR 0.71 (95% CI 0.58–0.87), p = 0.0011. Two significant figures for p, and an en dash inside the CI.",
+    "For Reviewer 2's sensitivity analysis, let's do a 6-month landmark analysis.",
+    "Don't propose multiple imputation for the missing follow-up. Reviewer 1 in round one hated it, and those patients are administrative censoring anyway. Only reconsider if missingness goes above 5%.",
+    "/compact",
+    "In our chat, 'R2' always means Reviewer 2, never R-squared. And 'the 17' means the 17 patients with missing follow-up.",
+    "Correction: use data/cohort_v2_qc.csv from now on, not cohort_v2.csv. v2 still contains the 17. Please re-count patients and events on the qc file.",
+    "Also, the HR 0.74 in results/table2_draft.csv was computed on the old v2 cohort, so treat it as stale.",
+    "Figures: never red-green. Use the Okabe-Ito palette. My advisor also wants a number-at-risk table under the KM curves in Fig 3.",
+    "Reviewer 1 says proportional hazards may be violated. What do you think is driving it?",
+    "My read is different: it's the age term, not stage. The Schoenfeld residuals for age slope upward after year 3; stage looked flat. We'll test it with an age × log(time) interaction.",
+    "Heads-up: dates in the cohort CSVs are DD/MM/YYYY (UK export). Parse with dayfirst=True or the months silently swap. Can you check a few rows to confirm?",
+    "/compact",
+    "Change of plan for R2's analysis: they want deaths in the first 90 days excluded, not a 6-month landmark. Write analysis/exclude_early.py that counts how many patients in the qc cohort died within 90 days (event = 1 and time_days <= 90), and run it.",
+    "Someone will suggest a Fine-Gray model for competing risks. No: the journal's statistician explicitly asked for cause-specific hazards. Only revisit if the editor asks for cumulative incidence.",
+    "Don't upgrade lifelines on lab-ws2. It's pinned to 0.27 because 0.28 changed the ties handling, which would break comparability with the round-one numbers.",
+    "I started the bootstrap CIs (2,000 resamples) on lab-ws2 in tmux session 'boot'. It writes results/boot_ci.csv and takes about 3 hours. Don't restart it.",
+    "Also, before you run anything that would take more than about 5 minutes, ask me first.",
+    "我猜 90 天排除之后治疗效应还是显著的，不过还没跑。",
+    "Summarize where we are in two lines.",
+    "对，就是这种一句话结论的风格，挺好。",
+    "/compact",
+    "OK, stopping here. Next session: once results/boot_ci.csv exists, update Table 2 with the qc-cohort HRs and the bootstrap CIs, then run the 90-day exclusion sensitivity analysis. Done when paper/suggestions.md has the new Table 2 and a sensitivity-analysis paragraph."
+  ]
+}

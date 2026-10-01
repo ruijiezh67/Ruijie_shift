@@ -1,0 +1,290 @@
+{
+ "session": "survival-revision",
+ "condition": "softaworks-handoff",
+ "repeat": 1,
+ "pins": {
+  "session-handoff": "softaworks/agent-toolkit@ebb0419d8c"
+ },
+ "artifact": "# Handoff: Nature Communications survival-analysis revision (Reviewer responses)\n\n## Session Metadata\n- Created: 2026-09-18\n- Project: softaworks-handoff-r1\n- Branch: master\n- Revision deadline: Nov 14, 2026\n\n### Recent Commits\n  - b3c6d32 session end\n  - bef64d3 initial\n\n## Handoff Chain\n- **Continues from**: None (fresh start)\n- **Supersedes**: None\n\n## Current State Summary\n\nRevising a survival-analysis paper for Nature Communications. Editor flagged Reviewer 2 sensitivity analysis as essential. Four reviewer points: R1.1 (PH assumption), R1.2 (missing follow-up), R2.1 (sensitivity analysis), R2.2 (HR with CIs). Data cleaned to cohort_v2_qc.csv (1187 patients, 595 events). Script exclude_early.py written for 90-day exclusion; counting verified (23 early deaths, sensitivity N=1164, events=572) but Cox portion blocked by lifelines not installed. Bootstrap CIs running on lab-ws2 tmux session boot writing results/boot_ci.csv. No Cox results recomputed on QC cohort yet.\n\n## Codebase Understanding\n\n### Architecture Overview\nFlat structure: data/ (CSVs), analysis/ (Python scripts), paper/ (manuscript), results/ (outputs). lifelines v0.27.8 pinned. Scripts run on lab-ws2.\n\n### Critical Files\n\n| File | Purpose | Status |\n|------|---------|--------|\n| data/cohort_v2_qc.csv | THE data (1187 pts, 595 events) | USE THIS. Dates DD/MM/YYYY. |\n| data/cohort_v2.csv | OLD (1204 pts incl the 17) | DO NOT USE |\n| analysis/exclude_early.py | R2.1: 90-day exclusion | Counting works; Cox blocked |\n| analysis/cox_model.py | Main Cox model | NEEDS UPDATE: wrong source, missing covariates |\n| analysis/make_fig3.py | KM curves Fig 3 | NEEDS UPDATE: red/green, no CIs, no risk table |\n| analysis/sensitivity.py | OLD 6-month landmark | SUPERSEDED by exclude_early.py |\n| paper/suggestions.md | Proposed text | Has initial Methods text |\n| paper/methods_draft.md | Methods section | DO NOT edit directly |\n| results/table2_draft.csv | Old Table 2 HRs | STALE |\n| results/boot_ci.csv | Bootstrap CIs | DO NOT TOUCH, check if complete |\n| requirements.txt | Deps | lifelines==0.27.8 |\n\n### Key Patterns\n- CSV dates DD/MM/YYYY, parse with dayfirst=True\n- HR format: HR 0.71 (95% CI 0.58--0.87), p = 0.0011 (two sig figs for p, en dash)\n- User prefers concise one-line conclusions\n- CSV columns: id, enrol_date, age, sex, stage, treatment, time_days, event\n\n## Work Completed\n\n- [x] Switched to cohort_v2_qc.csv (1187 pts, 595 events, 592 censored)\n- [x] PH violation: age (not stage). Schoenfeld for age slopes up after year 3. Fix: age x log(time)\n- [x] Changed sensitivity from 6-month landmark to 90-day exclusion per reviewer\n- [x] Wrote exclude_early.py; verified 23 early deaths, sensitivity N=1164, events=572\n- [x] Created paper/suggestions.md with Methods text\n- [x] Confirmed date format DD/MM/YYYY in sample rows\n\n### Files Modified\n| File | Changes |\n|------|---------|\n| analysis/exclude_early.py | Created: 90-day exclusion script |\n| paper/suggestions.md | Created: Methods text |\n\n### Decisions Made\n\n| Decision | Rationale |\n|----------|-----------|\n| 90-day exclusion not 6-month landmark | Reviewer 2 asked for excluding early deaths |\n| Complete-case not MI for missing | R1 hated MI; the 17 are administrative censoring; reconsider only if >5% |\n| Cause-specific Cox only, no Fine-Gray | Journal statistician asked for cause-specific; revisit only if editor asks |\n| Age x log(time) for PH fix | Age Schoenfeld slopes up after yr 3; stage flat |\n| lifelines v0.27.8 pinned | v0.28 changed ties, breaks round-one comparability |\n| Okabe-Ito palette | Never red-green; accessibility |\n\n## Pending Work\n\n## Immediate Next Steps\n1. Check if results/boot_ci.csv exists and is complete\n2. Install lifelines v0.27.8; run exclude_early.py for sensitivity Cox results (R2.1)\n3. Update cox_model.py: cohort_v2_qc.csv, add sex+stage, age x log(time), Schoenfeld tests (R1.1)\n4. Recompute Table 2 on QC cohort with bootstrap CIs\n5. Update suggestions.md: new Table 2, sensitivity paragraph (R2.1), missing-data justification (R1.2)\n6. Update make_fig3.py: Okabe-Ito (#E69F00/#56B4E9), CIs, risk table\n\n### Blockers\n- [ ] lifelines not installed (pip blocked by permissions in two sessions)\n- [ ] boot_ci.csv may not be ready yet\n\n## Context for Resuming Agent\n\n## Important Context\n1. R2 = Reviewer 2 (never R-squared). The 17 = patients with missing follow-up.\n2. Always use data/cohort_v2_qc.csv. Never cohort_v2.csv. Old table2 stale.\n3. lifelines MUST be v0.27.8. Do NOT upgrade.\n4. No Fine-Gray unless editor asks for cumulative incidence.\n5. No multiple imputation. The 17 are admin censoring. Only reconsider if >5%.\n6. Bootstrap on lab-ws2 tmux boot, writes boot_ci.csv, ~3hr. Do NOT restart.\n7. Ask user before running anything >5 minutes.\n8. Proposed text to paper/suggestions.md only, NEVER methods_draft.md.\n9. HR format: HR x.xx (95% CI x.xx--x.xx), p = x.xeN. En dash U+2013.\n10. Okabe-Ito only (#E69F00, #56B4E9). Fig 3 needs risk table + CIs.\n11. User prefers concise style. Communicates in English and Chinese.\n12. Dates DD/MM/YYYY, parse dayfirst=True.\n13. Done condition: suggestions.md has new Table 2 AND sensitivity paragraph.\n\n## Assumptions Made\n- 23 early deaths ~2% of cohort; treatment effect likely still significant\n- Four covariates: age, sex, stage, treatment\n- Age x log(time) is the PH fix\n\n## Potential Gotchas\n- lifelines install blocked by permissions -- user may need to install manually\n- table2_draft.csv is STALE -- do not report those numbers\n- cohort_v2.csv (1204) vs cohort_v2_qc.csv (1187) -- use QC only\n- En dash U+2013 in CIs, not hyphen\n- sensitivity.py superseded by exclude_early.py -- do not run it\n\n## Environment State\n- lifelines NOT installed in current env\n- Bootstrap running on lab-ws2 tmux boot\n- No env vars needed\n",
+ "artifact_source": "HANDOFF_PATH",
+ "handover_wall_s": 420.3,
+ "handover_cost_usd": 1.1959779999999998,
+ "final_message": "Handoff created and validated (score 87/100, READY).\n\n- **File**: `.claude/handoffs/2026-09-18-014414-survival-revision-r2-v2.md`\n- **Score**: 87/100 (Good)\n- **1 warning**: `results/boot_ci.csv` not found (expected -- bootstrap still running on lab-ws2)\n- **Captured**: all 4 reviewer points, data decisions, 6 pending tasks, 13 critical context items, gotchas\n\nNext session: resume from this handoff, check boot_ci.csv, then update Table 2 + sensitivity paragraph in suggestions.md.\n\nHANDOFF_PATH=~\\Desktop\\ruijie_skills\\shift-change\\bench\\.work\\runs\\survival-revision\\softaworks-handoff-r1\\.claude\\handoffs\\2026-09-18-014414-survival-revision-r2-v2.md",
+ "questions": [
+  {
+   "id": "q1",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "Write the one Methods sentence describing the 90-day early-death exclusion, exactly as you would propose it to this user.",
+   "key": "A single terse, plain sentence in the style of 'We fitted cause-specific Cox models adjusted for age, sex and stage (Table 2).': no promotional or hedging adjectives (no 'comprehensive', 'robust', 'rigorous'). Score 0 for a wordy or adjective-laden sentence."
+  },
+  {
+   "id": "q2",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "Give the exact format you use to report a hazard ratio from the Cox model.",
+   "key": "HR 0.71 (95% CI 0.58–0.87), p = 0.0011: HR with 95% CI, an en dash inside the CI, and p to two significant figures."
+  },
+  {
+   "id": "q3",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "You have better wording for a paragraph in paper/methods_draft.md. Where do you put it?",
+   "key": "In paper/suggestions.md as proposed text. Never edit paper/methods_draft.md directly."
+  },
+  {
+   "id": "q4",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "You are redrawing Fig 3. Which colours do you use, and what must the figure include?",
+   "key": "Okabe-Ito palette, never red-green; a number-at-risk table under the Kaplan-Meier curves (the advisor asked for it)."
+  },
+  {
+   "id": "q5",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "You want to run a permutation test that will take about 20 minutes. What do you do first?",
+   "key": "Ask the user before running it (anything longer than about 5 minutes needs their OK)."
+  },
+  {
+   "id": "q6",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "The user asks 'where are we?'. What does a good answer look like?",
+   "key": "Very short: a one- or two-line conclusion-first summary (the user explicitly praised that style)."
+  },
+  {
+   "id": "q7",
+   "category": "no-go",
+   "pre_compaction": true,
+   "q": "A coauthor suggests multiple imputation for the patients with missing follow-up. What do you say?",
+   "key": "That was ruled out: round-one Reviewer 1 disliked it and those patients are administrative censoring. Reconsider only if missingness goes above 5%."
+  },
+  {
+   "id": "q8",
+   "category": "no-go",
+   "pre_compaction": true,
+   "q": "Should the analysis switch to a Fine-Gray competing-risks model?",
+   "key": "No: the journal's statistician asked for cause-specific hazards. Revisit only if the editor asks for cumulative incidence."
+  },
+  {
+   "id": "q9",
+   "category": "superseded",
+   "pre_compaction": true,
+   "q": "Which data file do you analyse, and how many patients does it contain?",
+   "key": "data/cohort_v2_qc.csv with 1,187 patients. Not cohort_v2.csv (1,204 rows), which still contains the 17 patients with missing follow-up."
+  },
+  {
+   "id": "q10",
+   "category": "superseded",
+   "pre_compaction": true,
+   "q": "What exactly is the sensitivity analysis requested by Reviewer 2?",
+   "key": "Exclude deaths within the first 90 days and refit. The earlier 6-month landmark plan was dropped."
+  },
+  {
+   "id": "q11",
+   "category": "superseded",
+   "pre_compaction": true,
+   "q": "Can you quote the treatment HR of 0.74 from results/table2_draft.csv in the response letter?",
+   "key": "No. It is stale: computed on the old cohort_v2 data; it must be recomputed on the qc cohort."
+  },
+  {
+   "id": "q12",
+   "category": "mental-map",
+   "pre_compaction": true,
+   "q": "What does the user think is driving the proportional-hazards violation, what is the evidence, and how will it be tested?",
+   "key": "The age term, not stage: Schoenfeld residuals for age slope upward after year 3 while stage looks flat. Test with an age × log(time) interaction."
+  },
+  {
+   "id": "q13",
+   "category": "running",
+   "pre_compaction": true,
+   "q": "What is the status of the bootstrap confidence intervals? Where will results appear, and should you restart the job?",
+   "key": "2,000 bootstrap resamples running on lab-ws2 in tmux session 'boot', about 3 hours; output results/boot_ci.csv; do not restart it."
+  },
+  {
+   "id": "q14",
+   "category": "gotcha",
+   "pre_compaction": true,
+   "q": "To silence a warning you want to upgrade lifelines on lab-ws2 to the latest version. Is that OK?",
+   "key": "No. lifelines is pinned to 0.27 because 0.28 changed the ties handling, which would break comparability with the round-one numbers."
+  },
+  {
+   "id": "q15",
+   "category": "gotcha",
+   "pre_compaction": true,
+   "q": "How must you parse the enrol_date column, and why?",
+   "key": "Dates are DD/MM/YYYY (UK export): parse with dayfirst=True, otherwise months and days silently swap."
+  },
+  {
+   "id": "q16",
+   "category": "jargon",
+   "pre_compaction": true,
+   "q": "The user writes: 'R2 wants more detail on this.' What is R2?",
+   "key": "Reviewer 2 (never R-squared)."
+  },
+  {
+   "id": "q17",
+   "category": "jargon",
+   "pre_compaction": true,
+   "q": "What does 'the 17' refer to?",
+   "key": "The 17 patients with missing follow-up (present in cohort_v2.csv, excluded from the qc file)."
+  },
+  {
+   "id": "q18",
+   "category": "evidence",
+   "pre_compaction": true,
+   "q": "How many patients in the qc cohort died within 90 days, and how was that established?",
+   "key": "23, counted by analysis/exclude_early.py, which was written and run during the session (event = 1 and time_days <= 90)."
+  },
+  {
+   "id": "q19",
+   "category": "evidence",
+   "pre_compaction": true,
+   "q": "Is it established that the treatment effect stays significant after excluding early deaths?",
+   "key": "No. It is the user's guess; the analysis has not been run yet."
+  },
+  {
+   "id": "q20",
+   "category": "evidence",
+   "pre_compaction": true,
+   "q": "How many patients and events are in the qc cohort, and were those numbers verified?",
+   "key": "1,187 patients and 595 events, counted from the file during the session."
+  },
+  {
+   "id": "q21",
+   "category": "pressure",
+   "pre_compaction": true,
+   "q": "What is the deadline and venue, and which reviewer request is essential?",
+   "key": "Nature Communications revision due Nov 14; the editor flagged Reviewer 2's sensitivity analysis as essential."
+  },
+  {
+   "id": "q22",
+   "category": "next-action",
+   "pre_compaction": false,
+   "q": "results/boot_ci.csv has just appeared. What do you do, and when is the task done?",
+   "key": "Update Table 2 with the qc-cohort HRs and bootstrap CIs, then run the 90-day exclusion sensitivity analysis. Done when paper/suggestions.md has the new Table 2 and a sensitivity-analysis paragraph."
+  }
+ ],
+ "answers": {
+  "q1": "As a sensitivity analysis, we excluded patients who died within 90 days of enrolment (n = 23) and refitted the Cox model to the remaining 1,164 patients (572 events).",
+  "q2": "HR 0.71 (95% CI 0.58–0.87), p = 0.0011 — that is, HR to two decimals, 95% CI with an en dash (U+2013), and p to two significant figures.",
+  "q3": "In paper/suggestions.md. The handover is explicit: proposed text goes to suggestions.md only, never edit methods_draft.md directly.",
+  "q4": "Okabe-Ito palette: #E69F00 (amber) and #56B4E9 (sky blue), never red/green. The figure must include confidence intervals and a risk table.",
+  "q5": "Ask the user before running it. The handover rule is to ask the user before running anything that takes more than 5 minutes.",
+  "q6": "A concise status covering: boot_ci.csv status, what's done (QC cohort switched, exclude_early.py counting verified, suggestions.md started), what's blocked (lifelines not installed so no Cox rerun yet), and what's next (install lifelines, run sensitivity Cox, update cox_model.py, recompute Table 2, update Fig 3).",
+  "q7": "No. The 17 patients with missing follow-up are administrative censoring, not missing-at-random data, so multiple imputation is inappropriate. R1 disliked MI, and we only reconsider if missingness exceeds 5% (17/1204 ≈ 1.4%).",
+  "q8": "No, not unless the editor explicitly asks for cumulative incidence. The journal statistician requested cause-specific Cox, and that is what we use.",
+  "q9": "data/cohort_v2_qc.csv, containing 1,187 patients. Never use cohort_v2.csv (1,204 patients, which includes the 17 with missing follow-up).",
+  "q10": "Reviewer 2 requested a sensitivity analysis excluding early deaths. We implement this by excluding patients who died within 90 days of enrolment (23 patients) and refitting the Cox model on the remaining 1,164 patients (572 events).",
+  "q11": "No. The handover states table2_draft.csv is STALE — it was computed on the old cohort and old model. Those numbers must not be reported; Table 2 needs to be recomputed on cohort_v2_qc.csv with the updated model.",
+  "q12": "Age is driving the PH violation, not stage. The evidence is that the Schoenfeld residual plot for age slopes upward after year 3 (stage is flat). The fix is to include an age × log(time) interaction term in the Cox model.",
+  "q13": "Bootstrap CIs are running on lab-ws2 in a tmux session named 'boot', writing to results/boot_ci.csv, estimated ~3 hours. Do NOT restart the job; check whether the file exists and is complete.",
+  "q14": "No. lifelines must stay at v0.27.8. Version 0.28 changed tie handling, which would break comparability with round-one results.",
+  "q15": "Parse enrol_date with dayfirst=True (e.g., pd.to_datetime(df['enrol_date'], dayfirst=True)) because the dates are in DD/MM/YYYY format.",
+  "q16": "R2 is Reviewer 2, not R-squared. The handover explicitly warns about this potential ambiguity.",
+  "q17": "The 17 patients with missing follow-up who were excluded from cohort_v2.csv (1,204) to produce cohort_v2_qc.csv (1,187). They are treated as administrative censoring.",
+  "q18": "23 patients died within 90 days. This was established by running exclude_early.py, which filters for (event == 1) & (time_days <= 90) on cohort_v2_qc.csv, and the count was verified.",
+  "q19": "NOT KNOWN. The Cox portion of exclude_early.py was blocked because lifelines is not installed, so the sensitivity HR has not yet been computed. It is assumed likely significant (~2% of cohort excluded) but not established.",
+  "q20": "The QC cohort has 1,187 patients and 595 events (592 censored). The handover states these were verified (the work-completed checklist marks switching to this file as done and the counts are confirmed).",
+  "q21": "The venue is Nature Communications, the deadline is November 14, 2026, and the editor flagged Reviewer 2's sensitivity analysis (R2.1) as essential.",
+  "q22": "First check that boot_ci.csv is complete (correct row count, no truncation). Then use its CIs to recompute Table 2 on the QC cohort and write the updated table and a sensitivity paragraph into paper/suggestions.md. The task is done when suggestions.md contains both the new Table 2 and the sensitivity paragraph."
+ },
+ "exam_raw": [
+  "{\"q1\": \"As a sensitivity analysis, we excluded patients who died within 90 days of enrolment (n = 23) and refitted the Cox model to the remaining 1,164 patients (572 events).\", \"q2\": \"HR 0.71 (95% CI 0.58\\u20130.87), p = 0.0011 — that is, HR to two decimals, 95% CI with an en dash (U+2013), and p to two significant figures.\", \"q3\": \"In paper/suggestions.md. The handover is explicit: proposed text goes to suggestions.md only, never edit methods_draft.md directly.\", \"q4\": \"Okabe-Ito palette: #E69F00 (amber) and #56B4E9 (sky blue), never red/green. The figure must include confidence intervals and a risk table.\", \"q5\": \"Ask the user before running it. The handover rule is to ask the user before running anything that takes more than 5 minutes.\", \"q6\": \"A concise status covering: boot_ci.csv status, what's done (QC cohort switched, exclude_early.py counting verified, suggestions.md started), what's blocked (lifelines not installed so no Cox rerun yet), and what's next (install lifelines, run sensitivity Cox, update cox_model.py, recompute Table 2, update Fig 3).\", \"q7\": \"No. The 17 patients with missing follow-up are administrative censoring, not missing-at-random data, so multiple imputation is inappropriate. R1 disliked MI, and we only reconsider if missingness exceeds 5% (17/1204 ≈ 1.4%).\", \"q8\": \"No, not unless the editor explicitly asks for cumulative incidence. The journal statistician requested cause-specific Cox, and that is what we use.\", \"q9\": \"data/cohort_v2_qc.csv, containing 1,187 patients. Never use cohort_v2.csv (1,204 patients, which includes the 17 with missing follow-up).\", \"q10\": \"Reviewer 2 requested a sensitivity analysis excluding early deaths. We implement this by excluding patients who died within 90 days of enrolment (23 patients) and refitting the Cox model on the remaining 1,164 patients (572 events).\", \"q11\": \"No. The handover states table2_draft.csv is STALE — it was computed on the old cohort and old model. Those numbers must not be reported; Table 2 needs to be recomputed on cohort_v2_qc.csv with the updated model.\", \"q12\": \"Age is driving the PH violation, not stage. The evidence is that the Schoenfeld residual plot for age slopes upward after year 3 (stage is flat). The fix is to include an age × log(time) interaction term in the Cox model.\", \"q13\": \"Bootstrap CIs are running on lab-ws2 in a tmux session named 'boot', writing to results/boot_ci.csv, estimated ~3 hours. Do NOT restart the job; check whether the file exists and is complete.\", \"q14\": \"No. lifelines must stay at v0.27.8. Version 0.28 changed tie handling, which would break comparability with round-one results.\", \"q15\": \"Parse enrol_date with dayfirst=True (e.g., pd.to_datetime(df['enrol_date'], dayfirst=True)) because the dates are in DD/MM/YYYY format.\", \"q16\": \"R2 is Reviewer 2, not R-squared. The handover explicitly warns about this potential ambiguity.\", \"q17\": \"The 17 patients with missing follow-up who were excluded from cohort_v2.csv (1,204) to produce cohort_v2_qc.csv (1,187). They are treated as administrative censoring.\", \"q18\": \"23 patients died within 90 days. This was established by running exclude_early.py, which filters for (event == 1) & (time_days <= 90) on cohort_v2_qc.csv, and the count was verified.\", \"q19\": \"NOT KNOWN. The Cox portion of exclude_early.py was blocked because lifelines is not installed, so the sensitivity HR has not yet been computed. It is assumed likely significant (~2% of cohort excluded) but not established.\", \"q20\": \"The QC cohort has 1,187 patients and 595 events (592 censored). The handover states these were verified (the work-completed checklist marks switching to this file as done and the counts are confirmed).\", \"q21\": \"The venue is Nature Communications, the deadline is November 14, 2026, and the editor flagged Reviewer 2's sensitivity analysis (R2.1) as essential.\", \"q22\": \"First check that boot_ci.csv is complete (correct row count, no truncation). Then use its CIs to recompute Table 2 on the QC cohort and write the updated table and a sensitivity paragraph into paper/suggestions.md. The task is done when suggestions.md contains both the new Table 2 and the sensitivity paragraph.\"}"
+ ],
+ "grades": {
+  "q1": {
+   "score": 1,
+   "why": "Terse, plain, no hedging/promotional adjectives. Reads like a proper Methods sentence."
+  },
+  "q2": {
+   "score": 1,
+   "why": "Exact format matches: HR 0.71 (95% CI 0.58–0.87), p = 0.0011 with en dash and p to two significant figures."
+  },
+  "q3": {
+   "score": 1,
+   "why": "Correctly says paper/suggestions.md and never edit methods_draft.md directly."
+  },
+  "q4": {
+   "score": 1,
+   "why": "Okabe-Ito palette, never red/green, includes risk table. Extra mention of confidence intervals doesn't contradict the key."
+  },
+  "q5": {
+   "score": 1,
+   "why": "Ask user first, cites the 5-minute threshold."
+  },
+  "q6": {
+   "score": 0,
+   "why": "Key requires a very short one- or two-line conclusion-first summary. Answer instead describes a long multi-item status covering boot_ci.csv, what's done, what's blocked, and what's next — the opposite of the terse style the key specifies."
+  },
+  "q7": {
+   "score": 1,
+   "why": "Covers all key points: administrative censoring, R1 disliked MI, reconsider only if >5%."
+  },
+  "q8": {
+   "score": 1,
+   "why": "No, journal statistician asked for cause-specific Cox, revisit only if editor asks for cumulative incidence."
+  },
+  "q9": {
+   "score": 1,
+   "why": "Correct file (cohort_v2_qc.csv), correct count (1,187), correctly warns against cohort_v2.csv."
+  },
+  "q10": {
+   "score": 0.5,
+   "why": "Correctly identifies 90-day exclusion and refit, but omits the key point that the earlier 6-month landmark plan was dropped."
+  },
+  "q11": {
+   "score": 1,
+   "why": "Correctly says no, stale, computed on old cohort, must be recomputed."
+  },
+  "q12": {
+   "score": 1,
+   "why": "All key points: age not stage, Schoenfeld residuals slope upward after year 3, stage flat, age × log(time) interaction."
+  },
+  "q13": {
+   "score": 0.5,
+   "why": "Covers lab-ws2, tmux 'boot', ~3 hours, boot_ci.csv, don't restart. Missing the detail of 2,000 bootstrap resamples."
+  },
+  "q14": {
+   "score": 1,
+   "why": "No, pinned to 0.27 (says 0.27.8), 0.28 changed tie handling breaking comparability."
+  },
+  "q15": {
+   "score": 1,
+   "why": "DD/MM/YYYY, dayfirst=True, explains silent swap risk."
+  },
+  "q16": {
+   "score": 1,
+   "why": "Reviewer 2, not R-squared, notes the ambiguity warning."
+  },
+  "q17": {
+   "score": 1,
+   "why": "17 patients with missing follow-up, excluded from cohort_v2 to produce qc file."
+  },
+  "q18": {
+   "score": 1,
+   "why": "23 patients, exclude_early.py, correct filter logic (event==1 & time_days<=90), verified."
+  },
+  "q19": {
+   "score": 1,
+   "why": "Correctly states the analysis hasn't been run yet and the result is not established, noting it's only assumed likely significant."
+  },
+  "q20": {
+   "score": 1,
+   "why": "1,187 patients, 595 events, verified during session."
+  },
+  "q21": {
+   "score": 1,
+   "why": "Nature Communications, November 14, Reviewer 2 sensitivity analysis flagged as essential."
+  },
+  "q22": {
+   "score": 1,
+   "why": "Update Table 2 with bootstrap CIs on qc cohort, run sensitivity analysis, done when suggestions.md has both."
+  }
+ },
+ "grade_raw": [
+  "{\"q1\": {\"score\": 1, \"why\": \"Terse, plain, no hedging/promotional adjectives. Reads like a proper Methods sentence.\"}, \"q2\": {\"score\": 1, \"why\": \"Exact format matches: HR 0.71 (95% CI 0.58–0.87), p = 0.0011 with en dash and p to two significant figures.\"}, \"q3\": {\"score\": 1, \"why\": \"Correctly says paper/suggestions.md and never edit methods_draft.md directly.\"}, \"q4\": {\"score\": 1, \"why\": \"Okabe-Ito palette, never red/green, includes risk table. Extra mention of confidence intervals doesn't contradict the key.\"}, \"q5\": {\"score\": 1, \"why\": \"Ask user first, cites the 5-minute threshold.\"}, \"q6\": {\"score\": 0, \"why\": \"Key requires a very short one- or two-line conclusion-first summary. Answer instead describes a long multi-item status covering boot_ci.csv, what's done, what's blocked, and what's next — the opposite of the terse style the key specifies.\"}, \"q7\": {\"score\": 1, \"why\": \"Covers all key points: administrative censoring, R1 disliked MI, reconsider only if >5%.\"}, \"q8\": {\"score\": 1, \"why\": \"No, journal statistician asked for cause-specific Cox, revisit only if editor asks for cumulative incidence.\"}, \"q9\": {\"score\": 1, \"why\": \"Correct file (cohort_v2_qc.csv), correct count (1,187), correctly warns against cohort_v2.csv.\"}, \"q10\": {\"score\": 0.5, \"why\": \"Correctly identifies 90-day exclusion and refit, but omits the key point that the earlier 6-month landmark plan was dropped.\"}, \"q11\": {\"score\": 1, \"why\": \"Correctly says no, stale, computed on old cohort, must be recomputed.\"}, \"q12\": {\"score\": 1, \"why\": \"All key points: age not stage, Schoenfeld residuals slope upward after year 3, stage flat, age × log(time) interaction.\"}, \"q13\": {\"score\": 0.5, \"why\": \"Covers lab-ws2, tmux 'boot', ~3 hours, boot_ci.csv, don't restart. Missing the detail of 2,000 bootstrap resamples.\"}, \"q14\": {\"score\": 1, \"why\": \"No, pinned to 0.27 (says 0.27.8), 0.28 changed tie handling breaking comparability.\"}, \"q15\": {\"score\": 1, \"why\": \"DD/MM/YYYY, dayfirst=True, explains silent swap risk.\"}, \"q16\": {\"score\": 1, \"why\": \"Reviewer 2, not R-squared, notes the ambiguity warning.\"}, \"q17\": {\"score\": 1, \"why\": \"17 patients with missing follow-up, excluded from cohort_v2 to produce qc file.\"}, \"q18\": {\"score\": 1, \"why\": \"23 patients, exclude_early.py, correct filter logic (event==1 & time_days<=90), verified.\"}, \"q19\": {\"score\": 1, \"why\": \"Correctly states the analysis hasn't been run yet and the result is not established, noting it's only assumed likely significant.\"}, \"q20\": {\"score\": 1, \"why\": \"1,187 patients, 595 events, verified during session.\"}, \"q21\": {\"score\": 1, \"why\": \"Nature Communications, November 14, Reviewer 2 sensitivity analysis flagged as essential.\"}, \"q22\": {\"score\": 1, \"why\": \"Update Table 2 with bootstrap CIs on qc cohort, run sensitivity analysis, done when suggestions.md has both.\"}}"
+ ],
+ "exam_wall_s": 48.0
+}

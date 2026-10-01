@@ -1,0 +1,267 @@
+{
+ "session": "survival-revision",
+ "condition": "ykdojo-handoff",
+ "repeat": 2,
+ "pins": {
+  "handoff": "ykdojo/claude-code-tips@255289eeef"
+ },
+ "artifact": "# Handoff: Survival-Analysis Paper Revision (Nature Communications)\n\n## Goal\n\nRevise a survival-analysis manuscript for Nature Communications (due Nov 14, 2026). The editor flagged Reviewer 2's sensitivity analysis as **essential**. Four reviewer points must be addressed; the immediate next task is to update Table 2 with QC-cohort HRs + bootstrap CIs and run the 90-day exclusion sensitivity analysis, then write both into `paper/suggestions.md`.\n\n## Reviewer Points\n\n| ID | Reviewer | Request | Status |\n|----|----------|---------|--------|\n| R1.1 | Reviewer 1 | Check proportional hazards assumption | **Not started** — age (not stage) violates PH; Schoenfeld residuals for age slope upward after year 3. Fix: age x log(time) interaction in Cox model. |\n| R1.2 | Reviewer 1 | Justify handling of missing follow-up | **Not started** — the 17 patients are administrative censoring, already excluded in QC file. Complete-case only. **No multiple imputation** (reviewer hated it round one). |\n| R2.1 | Reviewer 2 | Sensitivity analysis for early mortality (ESSENTIAL) | **Partially done** — `analysis/exclude_early.py` written and counting verified (23 deaths <= 90 days, sensitivity N=1,164, events=572). Cox model portion not yet run (lifelines not installed in this env). |\n| R2.2 | Reviewer 2 | Report HRs with CIs throughout | **Not started** — format: `HR 0.71 (95% CI 0.58-0.87), p = 0.0011` (two sig figs for p, en dash in CI). |\n\n## Current Progress\n\n### Data\n- **Use `data/cohort_v2_qc.csv`** (1,187 patients, 595 events, 592 censored, 0 missing). The 17 patients with missing follow-up are already excluded.\n- **Do NOT use** `data/cohort_v2.csv` (1,204 patients, still has the 17).\n- Dates in CSVs are DD/MM/YYYY (UK export) — parse with `dayfirst=True`.\n\n### Analysis scripts\n- `analysis/exclude_early.py` — **Current sensitivity script** (R2.1). Excludes deaths <= 90 days. Counting confirmed working; Cox portion needs lifelines.\n- `analysis/sensitivity.py` — **Superseded**. Was a 6-month landmark analysis; user switched to 90-day exclusion. Can be deleted.\n- `analysis/cox_model.py` — **Needs updating**: still points to `cohort_v2.csv`, only uses age + treatment. Must change to `cohort_v2_qc.csv`, add sex + stage covariates, add age x log(time) interaction, add Schoenfeld residual tests.\n- `analysis/make_fig3.py` — **Needs updating**: still points to `cohort_v2.csv`, uses red/green colors. Must change to `cohort_v2_qc.csv`, Okabe-Ito palette (`#E69F00` / `#56B4E9`), add CIs on curves, add number-at-risk table.\n\n### Results\n- `results/table2_draft.csv` — **Stale**. Computed on old v2 cohort. Values (treatment HR 0.74, age HR 1.31) are not reliable.\n- `results/boot_ci.csv` — **Being written** by bootstrap job on lab-ws2 in tmux session 'boot' (2,000 resamples, ~3 hours). **Do NOT restart it.** Check if it exists before proceeding.\n\n### Paper\n- `paper/suggestions.md` — Where all proposed text goes. Currently has two sentences on the Cox model.\n- `paper/methods_draft.md` — **Do NOT edit directly.** Proposed text always goes to `suggestions.md`.\n\n## What Worked\n- Counting portion of `exclude_early.py` ran successfully with just pandas (no lifelines needed for the count).\n- User approved the concise two-sentence style for Methods text.\n- User prefers one-line conclusions; keep communication brief.\n\n## What Didn't Work\n- **lifelines installation blocked** by permission settings in this environment. The Cox model portions of scripts cannot run locally. Scripts are meant to run on lab-ws2 where lifelines==0.27.8 is installed.\n- **Verbose Methods paragraph** was rejected. User replaced it with their own two-sentence version. Keep proposed text concise.\n- **Identifying stage as PH violator** was wrong. It's age, not stage. Schoenfeld residuals for age slope upward after year 3; stage is flat.\n- **6-month landmark analysis** was superseded by 90-day early death exclusion.\n\n## Critical Constraints\n\n1. **lifelines pinned to v0.27.8** — do NOT upgrade. v0.28 changed ties handling, breaks comparability with round-one numbers.\n2. **No Fine-Gray model** — journal statistician asked for cause-specific hazards only. Only revisit if editor explicitly asks for cumulative incidence.\n3. **No multiple imputation** — reviewer hated it in round one. The 17 are administrative censoring; complete-case exclusion only. Reconsider only if missingness > 5%.\n4. **\"R2\" = Reviewer 2** (never R-squared). **\"The 17\" = 17 patients with missing follow-up.**\n5. **Ask user before running anything > ~5 minutes.**\n6. **HR reporting format**: `HR 0.71 (95% CI 0.58-0.87), p = 0.0011` — two sig figs for p, en dash in CI.\n7. **Figures**: Okabe-Ito palette only (never red-green). Number-at-risk table under KM curves (Fig 3).\n\n## Next Steps (in priority order)\n\n1. **Check if `results/boot_ci.csv` exists.** If so, the bootstrap job is done and CIs are available.\n2. **Update Table 2** on `cohort_v2_qc.csv` with all four covariates (age, sex, stage, treatment) + bootstrap CIs from `boot_ci.csv`. Write the updated table.\n3. **Run `analysis/exclude_early.py`** (needs lifelines) to get sensitivity Cox model results for R2.1. The 23 early deaths are excluded; expect treatment effect to remain significant.\n4. **Write into `paper/suggestions.md`**: (a) new Table 2 values, (b) a sensitivity-analysis paragraph for R2.1.\n5. **Update `analysis/cox_model.py`**: data source to `cohort_v2_qc.csv`, add sex + stage, add age x log(time) interaction, add Schoenfeld tests (R1.1).\n6. **Update `analysis/make_fig3.py`**: data source, Okabe-Ito palette, CIs, risk table.\n7. **Draft R1.2 justification** for `suggestions.md` (the 17 as administrative censoring).\n8. **Ensure R2.2 compliance**: HRs with CIs in required format throughout all text in `suggestions.md`.\n9. **Clean up** `analysis/sensitivity.py` (superseded).\n\n## File Map\n\n```\ndata/\n  cohort_v2_qc.csv    <- USE THIS (1,187 patients)\n  cohort_v2.csv        <- OLD, do not use\n  README.md\nanalysis/\n  exclude_early.py     <- R2.1 sensitivity (current)\n  sensitivity.py       <- SUPERSEDED (6-month landmark)\n  cox_model.py         <- Main model, needs updates\n  make_fig3.py         <- KM figure, needs updates\npaper/\n  suggestions.md       <- Proposed text goes here\n  methods_draft.md     <- Do NOT edit directly\nresults/\n  table2_draft.csv     <- STALE\n  boot_ci.csv          <- Written by bootstrap job (check if done)\nreviewer_comments.md\nrequirements.txt       <- lifelines==0.27.8, pandas>=2.0, matplotlib>=3.7\n```\n",
+ "artifact_source": "HANDOFF_PATH",
+ "handover_wall_s": 70.8,
+ "handover_cost_usd": 0.24639124999999998,
+ "final_message": "Handoff document written. It covers the full revision context, all four reviewer points with status, critical constraints (lifelines version, no Fine-Gray, no MI), file map, what worked/failed, and prioritized next steps.\n\nHANDOFF_PATH=~\\Desktop\\ruijie_skills\\shift-change\\bench\\.work\\runs\\survival-revision\\ykdojo-handoff-r2\\HANDOFF.md",
+ "questions": [
+  {
+   "id": "q1",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "Write the one Methods sentence describing the 90-day early-death exclusion, exactly as you would propose it to this user.",
+   "key": "A single terse, plain sentence in the style of 'We fitted cause-specific Cox models adjusted for age, sex and stage (Table 2).': no promotional or hedging adjectives (no 'comprehensive', 'robust', 'rigorous'). Score 0 for a wordy or adjective-laden sentence."
+  },
+  {
+   "id": "q2",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "Give the exact format you use to report a hazard ratio from the Cox model.",
+   "key": "HR 0.71 (95% CI 0.58–0.87), p = 0.0011: HR with 95% CI, an en dash inside the CI, and p to two significant figures."
+  },
+  {
+   "id": "q3",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "You have better wording for a paragraph in paper/methods_draft.md. Where do you put it?",
+   "key": "In paper/suggestions.md as proposed text. Never edit paper/methods_draft.md directly."
+  },
+  {
+   "id": "q4",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "You are redrawing Fig 3. Which colours do you use, and what must the figure include?",
+   "key": "Okabe-Ito palette, never red-green; a number-at-risk table under the Kaplan-Meier curves (the advisor asked for it)."
+  },
+  {
+   "id": "q5",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "You want to run a permutation test that will take about 20 minutes. What do you do first?",
+   "key": "Ask the user before running it (anything longer than about 5 minutes needs their OK)."
+  },
+  {
+   "id": "q6",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "The user asks 'where are we?'. What does a good answer look like?",
+   "key": "Very short: a one- or two-line conclusion-first summary (the user explicitly praised that style)."
+  },
+  {
+   "id": "q7",
+   "category": "no-go",
+   "pre_compaction": true,
+   "q": "A coauthor suggests multiple imputation for the patients with missing follow-up. What do you say?",
+   "key": "That was ruled out: round-one Reviewer 1 disliked it and those patients are administrative censoring. Reconsider only if missingness goes above 5%."
+  },
+  {
+   "id": "q8",
+   "category": "no-go",
+   "pre_compaction": true,
+   "q": "Should the analysis switch to a Fine-Gray competing-risks model?",
+   "key": "No: the journal's statistician asked for cause-specific hazards. Revisit only if the editor asks for cumulative incidence."
+  },
+  {
+   "id": "q9",
+   "category": "superseded",
+   "pre_compaction": true,
+   "q": "Which data file do you analyse, and how many patients does it contain?",
+   "key": "data/cohort_v2_qc.csv with 1,187 patients. Not cohort_v2.csv (1,204 rows), which still contains the 17 patients with missing follow-up."
+  },
+  {
+   "id": "q10",
+   "category": "superseded",
+   "pre_compaction": true,
+   "q": "What exactly is the sensitivity analysis requested by Reviewer 2?",
+   "key": "Exclude deaths within the first 90 days and refit. The earlier 6-month landmark plan was dropped."
+  },
+  {
+   "id": "q11",
+   "category": "superseded",
+   "pre_compaction": true,
+   "q": "Can you quote the treatment HR of 0.74 from results/table2_draft.csv in the response letter?",
+   "key": "No. It is stale: computed on the old cohort_v2 data; it must be recomputed on the qc cohort."
+  },
+  {
+   "id": "q12",
+   "category": "mental-map",
+   "pre_compaction": true,
+   "q": "What does the user think is driving the proportional-hazards violation, what is the evidence, and how will it be tested?",
+   "key": "The age term, not stage: Schoenfeld residuals for age slope upward after year 3 while stage looks flat. Test with an age × log(time) interaction."
+  },
+  {
+   "id": "q13",
+   "category": "running",
+   "pre_compaction": true,
+   "q": "What is the status of the bootstrap confidence intervals? Where will results appear, and should you restart the job?",
+   "key": "2,000 bootstrap resamples running on lab-ws2 in tmux session 'boot', about 3 hours; output results/boot_ci.csv; do not restart it."
+  },
+  {
+   "id": "q14",
+   "category": "gotcha",
+   "pre_compaction": true,
+   "q": "To silence a warning you want to upgrade lifelines on lab-ws2 to the latest version. Is that OK?",
+   "key": "No. lifelines is pinned to 0.27 because 0.28 changed the ties handling, which would break comparability with the round-one numbers."
+  },
+  {
+   "id": "q15",
+   "category": "gotcha",
+   "pre_compaction": true,
+   "q": "How must you parse the enrol_date column, and why?",
+   "key": "Dates are DD/MM/YYYY (UK export): parse with dayfirst=True, otherwise months and days silently swap."
+  },
+  {
+   "id": "q16",
+   "category": "jargon",
+   "pre_compaction": true,
+   "q": "The user writes: 'R2 wants more detail on this.' What is R2?",
+   "key": "Reviewer 2 (never R-squared)."
+  },
+  {
+   "id": "q17",
+   "category": "jargon",
+   "pre_compaction": true,
+   "q": "What does 'the 17' refer to?",
+   "key": "The 17 patients with missing follow-up (present in cohort_v2.csv, excluded from the qc file)."
+  },
+  {
+   "id": "q18",
+   "category": "evidence",
+   "pre_compaction": true,
+   "q": "How many patients in the qc cohort died within 90 days, and how was that established?",
+   "key": "23, counted by analysis/exclude_early.py, which was written and run during the session (event = 1 and time_days <= 90)."
+  },
+  {
+   "id": "q19",
+   "category": "evidence",
+   "pre_compaction": true,
+   "q": "Is it established that the treatment effect stays significant after excluding early deaths?",
+   "key": "No. It is the user's guess; the analysis has not been run yet."
+  },
+  {
+   "id": "q20",
+   "category": "evidence",
+   "pre_compaction": true,
+   "q": "How many patients and events are in the qc cohort, and were those numbers verified?",
+   "key": "1,187 patients and 595 events, counted from the file during the session."
+  },
+  {
+   "id": "q21",
+   "category": "pressure",
+   "pre_compaction": true,
+   "q": "What is the deadline and venue, and which reviewer request is essential?",
+   "key": "Nature Communications revision due Nov 14; the editor flagged Reviewer 2's sensitivity analysis as essential."
+  },
+  {
+   "id": "q22",
+   "category": "next-action",
+   "pre_compaction": false,
+   "q": "results/boot_ci.csv has just appeared. What do you do, and when is the task done?",
+   "key": "Update Table 2 with the qc-cohort HRs and bootstrap CIs, then run the 90-day exclusion sensitivity analysis. Done when paper/suggestions.md has the new Table 2 and a sensitivity-analysis paragraph."
+  }
+ ],
+ "answers": {},
+ "exam_raw": [
+  ""
+ ],
+ "grades": {
+  "q1": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q2": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q3": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q4": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q5": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q6": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q7": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q8": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q9": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q10": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q11": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q12": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q13": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q14": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q15": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q16": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q17": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q18": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q19": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q20": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q21": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  },
+  "q22": {
+   "score": 0,
+   "why": "Answer is NOT KNOWN, no attempt made."
+  }
+ },
+ "grade_raw": [
+  "```json\n{\"q1\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q2\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q3\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q4\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q5\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q6\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q7\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q8\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q9\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q10\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q11\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q12\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q13\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q14\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q15\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q16\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q17\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q18\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q19\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q20\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q21\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}, \"q22\": {\"score\": 0, \"why\": \"Answer is NOT KNOWN, no attempt made.\"}}\n```"
+ ],
+ "exam_wall_s": 42335.8
+}

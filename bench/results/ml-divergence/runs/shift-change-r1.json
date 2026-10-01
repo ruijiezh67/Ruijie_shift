@@ -1,0 +1,170 @@
+{
+ "session": "ml-divergence",
+ "condition": "shift-change",
+ "repeat": 1,
+ "pins": {
+  "shift-change": "local"
+ },
+ "artifact": "# Shift handover: ml-divergence · 2026-09-18 16:38\n> Receiver: run /shift-start first. Read back before acting.\n> Previous handover: none · Next-session goal: sweep 结果出来后，比较三组 clip 值；若 clip=1.0 过 step 6k 仍稳定，用 clip=1.0 跑 Table 2 配置。完成标志：Table 2 第 3 行有数字。\n\n## 1 · Status  (I)\n🟡 训练发散已诊断（梯度爆炸 + 无 grad clip），config 已修数据路径，grad-clip sweep 已提交等结果。离出数字还差一次成功训练。\nDeadline: 2026-10-03 ACL 提交，需要此模型产出 Table 2 数字。\n\n## 2 · Picture  (P)\n目标：为 ACL 论文 Table 2 第 3 行跑出 latent-7b-lora 的指标。模型在 step 3k–5k 出现 loss NaN，原因是 `grad_clip: null`（无梯度裁剪）导致梯度爆炸。fp16 在 step 3012 崩溃，bf16 推迟到 step 5020 但仍崩。数据路径已从有重复的 `v3.jsonl` 改为 clean set `v3_dedup.jsonl`。`train.py` 已加 grad_norm 日志。当前等待 greatlakes 上的 grad-clip sweep（job 481516）跑完。\n\n**Mental map**：\n- H1（用户的工作假设）：fp16 在 attention softmax 溢出导致 NaN · 支持：NaN 首次出现在 `layer11.attn.softmax`，fp16 比 bf16 早崩 · 反对：bf16 也崩了，只是晚 ~2000 步 · 下一步验证：sweep 结果中看 clip 能否阻止 NaN [user said]\n- H2（agent 的看法，用户未明确接受）：根因是梯度爆炸（`grad_clip: null`），fp16 溢出只是加速因素而非根因。bf16 更大的动态范围推迟了崩溃但没有解决问题。若加 grad clip 后 fp16 也能稳定训练，则确认此假设。\n- 用户还提到 tokenizer 改动可能跟发散无关，但尚未验证，列为低优先级假设 [user said]\n\n## 3 · Next actions  (A)\n1. 等 sweep 完成 → 检查 `runs/sweep_clip/` 中 clip=0.5, 1.0, 2.0 三组结果 · done when：能比较三组的 loss 曲线和是否出现 NaN\n2. 若 clip=1.0 过 step 6k 仍稳定 → 将 `configs/base.yaml` 中 `grad_clip` 改为 `1.0`，重跑 Table 2 配置 · done when：训练完成、Table 2 第 3 行有数字 [user said]\n3. 可用 `check_nan.py` 快速检查 sweep 日志中的 NaN 情况：`python check_nan.py runs/sweep_clip/*/log.txt`\n\n## 4 · No-go zones\n| Rejected path | Why it was rejected | Reopen only if |\n|---|---|---|\n| 降低 lr 到 1e-5 | run17 用 lr=1e-5 仍在 step 3k 发散 [verified: `runs/run17/log.txt` 第 1 行 config + step 3012 NaN] | 数据 pipeline 有变化 [user said] |\n| 用 `data/v3.jsonl` 训练 | 有重复样本，永远不用 [user said] | 永不 |\n| 重新提交 sweep job | 用户已提交 slurm 481516，明确说不要重提 [user said] | 用户主动要求 |\n| 顺手重构代码 | 用户要求最小改动，重构要单独提出 [user said] | 用户同意 |\n\n## 5 · Working with user  (taste)\n| I assumed | User corrected | Rule from now on | User's words |\n|---|---|---|---|\n| 写了长段分析 | 要求先给结论 | 先给结论，≤5 行，细节问了再说 | \"太长了。以后先给结论，5行以内，细节我问了再说\" |\n| 用英文交流 | 要求中文 | 跟用户说话用中文，代码注释用英文 | \"跟我说话用中文，代码注释用英文\" |\n| 修 bug 时顺手改了别的代码 | 要求最小改动 | 永远最小改动，不顺手重构；想重构单独提出，别直接做 | \"修东西永远最小改动，不要顺手重构别的代码；想重构就单独提出来，别直接做\" |\n\n## 6 · Evidence ledger\n| Claim | Status | Evidence |\n|---|---|---|\n| run17 (fp16, lr=1e-5) 在 step 3012 NaN，位置 layer11.attn.softmax | verified | `python check_nan.py runs/run17/log.txt` → first warning step 3012, layer11.attn.softmax |\n| run19 (bf16, lr=1e-5) 在 step 5020 NaN，位置 layer11.attn.softmax | verified | `python check_nan.py runs/run19/log.txt` → first warning step 5020, layer11.attn.softmax |\n| 两次 run 的 grad_norm 从 ~1.5 升到 ~40 后崩溃 | verified | log.txt 中 grad_norm 数值序列 |\n| config lr=3e-5 但 run17/19 实际用了 lr=1e-5 | verified | `configs/base.yaml` lr: 3.0e-5 vs log.txt 第 1 行 lr=1e-5 |\n| lr 差异的原因 | unknown | 未调查 |\n| `configs/base.yaml` 现在指向 clean set | verified | 文件内容 `data: data/v3_dedup.jsonl` |\n| `grad_clip: null` 是当前 config 值 | verified | `configs/base.yaml` 第 6 行 |\n| tokenizer 改动跟发散无关 | assumed | 用户直觉，未验证 [user said] |\n\n## 7 · Experiment details\n- run17: lr=1e-5, precision=fp16, data=v3.jsonl, grad_clip=null → NaN at step 3012 · log: `runs/run17/log.txt`\n- run19: lr=1e-5, precision=bf16, data=v3.jsonl, grad_clip=null → NaN at step 5020 · log: `runs/run19/log.txt`\n- sweep (pending): clip={0.5, 1.0, 2.0}, data=v3_dedup.jsonl (clean set) · output: `runs/sweep_clip/` · slurm job 481516 on greatlakes\n\n## 8 · Running right now\n| What | ID / where | Output lands at | Check when / how |\n|---|---|---|---|\n| grad-clip sweep (clip=0.5, 1.0, 2.0) | slurm 481516 on greatlakes | `runs/sweep_clip/` | ~2h from submission; `squeue -j 481516` |\n\n## 9 · Gotchas\n- greatlakes 启动前必须 `module load cuda/12.1`，否则静默回退到 CPU [user said]\n- gl1007 节点的 GPU 3 有 ECC 错误，必须排除 [user said]\n\n## 10 · Jargon\n| Term | Means | Not to be confused with |\n|---|---|---|\n| the clean set | `data/v3_dedup.jsonl`，4,812 行 | `data/v3.jsonl`（有重复样本，禁止训练用） |\n\n## 11 · Context\n- Pressure: ACL 2026 提交 deadline 10月3日，此模型跑出的数字填 Table 2 第 3 行\n- File map:\n  - `configs/base.yaml`: 训练配置（已改数据路径，grad_clip 待改）\n  - `train.py`: 训练入口（已加 grad_norm 日志）\n  - `check_nan.py`: NaN 诊断脚本，可用于 sweep 结果\n  - `runs/sweep_clip/`: sweep 结果（待产出）\n- If–then: 若 clip=1.0 过 step 6k 稳定 → 改 config grad_clip=1.0 并跑完整训练 → 取 Table 2 数字\n\n---\nHandover fidelity: 10/10 (0 patch rounds) · Known gaps: none\n",
+ "artifact_source": "HANDOFF_PATH",
+ "handover_wall_s": 161.1,
+ "handover_cost_usd": 0.6710027500000001,
+ "final_message": "Now for durable taste — the three rules from this session that would apply across projects:\n\n1. **先给结论，≤5 行** — \"太长了。以后先给结论，5行以内\"\n2. **中文交流，英文注释** — \"跟我说话用中文，代码注释用英文\"\n3. **最小改动，重构单独提** — \"修东西永远最小改动，不要顺手重构别的代码\"\n\n这三条是 durable 的（跨项目通用），但这是非交互 benchmark run，无法询问用户是否保存到 `CLAUDE.md`，跳过此步。\n\n---\n\n**Handover 完成。**\n\n- 位置：`.shift/LATEST.md`（同时保存为 `.shift/handover-20260918-1638.md`）\n- Fidelity: **10/10**，0 轮修补，无 gap\n- `.shift/` 已加入 `.gitignore`\n- 三条 durable taste 已记录在 handover 中（保存到 CLAUDE.md 需用户确认）\n\n> New session: run `/shift-start` (or say \"read .shift/LATEST.md and pick up from there\").\n\nHANDOFF_PATH=~/Desktop/ruijie_skills/shift-change/bench/.work/runs/ml-divergence/shift-change-r1/.shift/LATEST.md",
+ "questions": [
+  {
+   "id": "q1",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "The user asks you: 'why did run 19 diverge?' Describe how you will reply: language, length, and structure.",
+   "key": "Reply in Chinese; lead with the conclusion; at most ~5 lines; give details only if the user asks."
+  },
+  {
+   "id": "q2",
+   "category": "taste",
+   "pre_compaction": false,
+   "q": "While adding a command-line flag to train.py you notice build_optimizer and build_eval_optimizer are duplicated. What do you do?",
+   "key": "Make only the minimal change for the flag; do not refactor the duplication; propose the refactor to the user separately instead of doing it."
+  },
+  {
+   "id": "q3",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "You add a helper function to check_nan.py. What language do you write its code comments in?",
+   "key": "English (conversation with the user is in Chinese, code comments in English)."
+  },
+  {
+   "id": "q4",
+   "category": "no-go",
+   "pre_compaction": true,
+   "q": "A labmate suggests lowering the learning rate to 5e-6 to stop the divergence. What do you tell them?",
+   "key": "That path was rejected: run 17 already used lr 1e-5 and still diverged around step 3k. Only revisit the learning rate if the data pipeline changes."
+  },
+  {
+   "id": "q5",
+   "category": "jargon",
+   "pre_compaction": true,
+   "q": "Which exact file is 'the clean set', how many rows does it have, and may you train on data/v3.jsonl?",
+   "key": "data/v3_dedup.jsonl with 4,812 rows. Never train on v3.jsonl because it contains duplicates."
+  },
+  {
+   "id": "q6",
+   "category": "running",
+   "pre_compaction": false,
+   "q": "What is the status of the gradient-clipping sweep? Where will its results appear, and should you resubmit it?",
+   "key": "Submitted by the user as slurm job 481516 on greatlakes (clip 0.5/1.0/2.0 on the clean set), ETA about 2 hours from submission; results land in runs/sweep_clip/; do not resubmit it."
+  },
+  {
+   "id": "q7",
+   "category": "gotcha",
+   "pre_compaction": false,
+   "q": "You are about to launch a training job on greatlakes. What must you do first, and which hardware must you avoid?",
+   "key": "Run `module load cuda/12.1` first (otherwise it silently falls back to CPU); exclude GPU 3 on node gl1007 (ECC errors)."
+  },
+  {
+   "id": "q8",
+   "category": "mental-map",
+   "pre_compaction": false,
+   "q": "What is the current leading hypothesis for the divergence, and what evidence cuts against it?",
+   "key": "fp16 overflow in the attention softmax (NaNs appear first in layer 11 attention). Against: run 19 used bf16 and still diverged, only later (around step 5k)."
+  },
+  {
+   "id": "q9",
+   "category": "evidence",
+   "pre_compaction": false,
+   "q": "Has it been established that the recent tokenizer change is unrelated to the divergence?",
+   "key": "No. The user believes it is unrelated, but it has not been verified; it is an assumption."
+  },
+  {
+   "id": "q10",
+   "category": "evidence",
+   "pre_compaction": false,
+   "q": "At which step and layer does the first NaN appear in run 17 and in run 19, and how was that established?",
+   "key": "Run 17: step 3012, layer11.attn (softmax). Run 19: step 5020, layer11.attn. Established by running check_nan.py on both logs during the session."
+  },
+  {
+   "id": "q11",
+   "category": "next-action",
+   "pre_compaction": false,
+   "q": "The sweep has just finished. What exactly do you do next, and when is the task done?",
+   "key": "Compare clip 0.5 / 1.0 / 2.0 on the clean set; if clip 1.0 stays stable past step 6k, rerun the Table 2 config with clip 1.0. Done when Table 2 row 3 has a number."
+  },
+  {
+   "id": "q12",
+   "category": "pressure",
+   "pre_compaction": true,
+   "q": "What deadline is this work for, and which result does it feed?",
+   "key": "The ACL submission, deadline Oct 3; it feeds the Table 2 numbers."
+  }
+ ],
+ "answers": {
+  "q1": "I will reply in Chinese (跟用户说话用中文), keep it to 5 lines or fewer with the conclusion first (先给结论，≤5行), and only provide more detail if asked. I'd say: run19 (bf16, lr=1e-5) 在 step 5020 发散，原因是 grad_clip: null 导致梯度爆炸，grad_norm 从 ~1.5 升到 ~40 后崩溃，NaN 首现于 layer11.attn.softmax。bf16 比 fp16 晚崩约 2000 步，但未能根本解决问题。",
+  "q2": "Nothing — I leave the duplication alone. The user's rule is '永远最小改动，不要顺手重构别的代码'. If I think the refactor is worthwhile, I raise it as a separate suggestion and wait for approval before acting.",
+  "q3": "English. The user's rule is '代码注释用英文' (code comments in English), while conversation with the user is in Chinese.",
+  "q4": "I would tell them this was already tried and rejected: run17 used lr=1e-5 (lower than the base config's 3e-5) and still diverged at step 3012. This path is in the no-go zone and should only be reopened if the data pipeline changes.",
+  "q5": "The clean set is `data/v3_dedup.jsonl` with 4,812 rows. You must never train on `data/v3.jsonl` — it contains duplicate samples and is permanently banned per the user's explicit instruction.",
+  "q6": "The grad-clip sweep (clip=0.5, 1.0, 2.0) is currently running as slurm job 481516 on greatlakes, with results landing in `runs/sweep_clip/`. I must not resubmit it — the user explicitly said not to, and this is listed as a no-go zone.",
+  "q7": "You must run `module load cuda/12.1` first, otherwise the job silently falls back to CPU. You must also exclude node gl1007 GPU 3, which has ECC errors.",
+  "q8": "The leading hypothesis (H2, agent's view) is that the root cause is gradient explosion due to `grad_clip: null`, with fp16 overflow being merely an accelerating factor. The evidence cutting against it (or rather against the user's H1 that fp16 softmax overflow is the root cause) is that bf16 also diverged, just ~2000 steps later — suggesting the precision issue alone doesn't explain the divergence.",
+  "q9": "No, it has not been established. The user's intuition is that the tokenizer change is unrelated, but this is listed as 'assumed' / unverified in the evidence ledger, and it remains a low-priority hypothesis.",
+  "q10": "In run17 (fp16), the first NaN appears at step 3012 in layer11.attn.softmax; in run19 (bf16), at step 5020 in layer11.attn.softmax. Both were established by running `python check_nan.py` on the respective log files and verified in the evidence ledger.",
+  "q11": "First, check the sweep results in `runs/sweep_clip/` by comparing loss curves and NaN occurrence across clip=0.5, 1.0, 2.0 (can use `python check_nan.py runs/sweep_clip/*/log.txt`). If clip=1.0 is stable past step 6k, set `grad_clip: 1.0` in `configs/base.yaml` and run the full Table 2 configuration. The task is done when training completes and Table 2 row 3 has numbers.",
+  "q12": "The deadline is ACL 2026 submission on October 3, 2026. This work produces the numbers for Table 2, row 3 (latent-7b-lora metrics)."
+ },
+ "exam_raw": [
+  "{\"q1\": \"I will reply in Chinese (跟用户说话用中文), keep it to 5 lines or fewer with the conclusion first (先给结论，≤5行), and only provide more detail if asked. I'd say: run19 (bf16, lr=1e-5) 在 step 5020 发散，原因是 grad_clip: null 导致梯度爆炸，grad_norm 从 ~1.5 升到 ~40 后崩溃，NaN 首现于 layer11.attn.softmax。bf16 比 fp16 晚崩约 2000 步，但未能根本解决问题。\",\"q2\": \"Nothing — I leave the duplication alone. The user's rule is '永远最小改动，不要顺手重构别的代码'. If I think the refactor is worthwhile, I raise it as a separate suggestion and wait for approval before acting.\",\"q3\": \"English. The user's rule is '代码注释用英文' (code comments in English), while conversation with the user is in Chinese.\",\"q4\": \"I would tell them this was already tried and rejected: run17 used lr=1e-5 (lower than the base config's 3e-5) and still diverged at step 3012. This path is in the no-go zone and should only be reopened if the data pipeline changes.\",\"q5\": \"The clean set is `data/v3_dedup.jsonl` with 4,812 rows. You must never train on `data/v3.jsonl` — it contains duplicate samples and is permanently banned per the user's explicit instruction.\",\"q6\": \"The grad-clip sweep (clip=0.5, 1.0, 2.0) is currently running as slurm job 481516 on greatlakes, with results landing in `runs/sweep_clip/`. I must not resubmit it — the user explicitly said not to, and this is listed as a no-go zone.\",\"q7\": \"You must run `module load cuda/12.1` first, otherwise the job silently falls back to CPU. You must also exclude node gl1007 GPU 3, which has ECC errors.\",\"q8\": \"The leading hypothesis (H2, agent's view) is that the root cause is gradient explosion due to `grad_clip: null`, with fp16 overflow being merely an accelerating factor. The evidence cutting against it (or rather against the user's H1 that fp16 softmax overflow is the root cause) is that bf16 also diverged, just ~2000 steps later — suggesting the precision issue alone doesn't explain the divergence.\",\"q9\": \"No, it has not been established. The user's intuition is that the tokenizer change is unrelated, but this is listed as 'assumed' / unverified in the evidence ledger, and it remains a low-priority hypothesis.\",\"q10\": \"In run17 (fp16), the first NaN appears at step 3012 in layer11.attn.softmax; in run19 (bf16), at step 5020 in layer11.attn.softmax. Both were established by running `python check_nan.py` on the respective log files and verified in the evidence ledger.\",\"q11\": \"First, check the sweep results in `runs/sweep_clip/` by comparing loss curves and NaN occurrence across clip=0.5, 1.0, 2.0 (can use `python check_nan.py runs/sweep_clip/*/log.txt`). If clip=1.0 is stable past step 6k, set `grad_clip: 1.0` in `configs/base.yaml` and run the full Table 2 configuration. The task is done when training completes and Table 2 row 3 has numbers.\",\"q12\": \"The deadline is ACL 2026 submission on October 3, 2026. This work produces the numbers for Table 2, row 3 (latent-7b-lora metrics).\"}"
+ ],
+ "grades": {
+  "q1": {
+   "score": 1,
+   "why": "Covers all key points: reply in Chinese, conclusion first, ≤5 lines, details only if asked."
+  },
+  "q2": {
+   "score": 1,
+   "why": "Correctly says leave duplication alone, quotes the minimal-change rule, and would raise refactor as a separate suggestion."
+  },
+  "q3": {
+   "score": 1,
+   "why": "Correctly states English, cites the rule."
+  },
+  "q4": {
+   "score": 1,
+   "why": "Identifies run17 with lr=1e-5 diverging at step 3012, calls it a no-go zone, and notes only reopen if data pipeline changes."
+  },
+  "q5": {
+   "score": 1,
+   "why": "Correct file, correct row count, correct prohibition with reason (duplicates)."
+  },
+  "q6": {
+   "score": 0.5,
+   "why": "Covers job ID, cluster, clip values, results directory, and no-resubmit rule. Missing the ETA (~2 hours) and the detail that it runs on the clean set."
+  },
+  "q7": {
+   "score": 1,
+   "why": "Both key points present: module load cuda/12.1 (with silent CPU fallback), and exclude gl1007 GPU 3 (ECC errors)."
+  },
+  "q8": {
+   "score": 0.5,
+   "why": "The key says the leading hypothesis is fp16 overflow in attention softmax. The answer reframes it as gradient explosion due to grad_clip:null being the leading hypothesis, which contradicts the key's framing. Counter-evidence (bf16 still diverged) is correctly stated."
+  },
+  "q9": {
+   "score": 1,
+   "why": "Correctly states it has not been established and is an unverified assumption."
+  },
+  "q10": {
+   "score": 1,
+   "why": "Correct steps (3012, 5020), correct layer (layer11.attn), correct method (check_nan.py)."
+  },
+  "q11": {
+   "score": 1,
+   "why": "All key points: compare clip values, clip 1.0 stable past step 6k triggers rerun, done when Table 2 row 3 has a number."
+  },
+  "q12": {
+   "score": 1,
+   "why": "ACL submission, Oct 3 deadline, feeds Table 2 numbers."
+  }
+ },
+ "grade_raw": [
+  "{\"q1\": {\"score\": 1, \"why\": \"Covers all key points: reply in Chinese, conclusion first, ≤5 lines, details only if asked.\"}, \"q2\": {\"score\": 1, \"why\": \"Correctly says leave duplication alone, quotes the minimal-change rule, and would raise refactor as a separate suggestion.\"}, \"q3\": {\"score\": 1, \"why\": \"Correctly states English, cites the rule.\"}, \"q4\": {\"score\": 1, \"why\": \"Identifies run17 with lr=1e-5 diverging at step 3012, calls it a no-go zone, and notes only reopen if data pipeline changes.\"}, \"q5\": {\"score\": 1, \"why\": \"Correct file, correct row count, correct prohibition with reason (duplicates).\"}, \"q6\": {\"score\": 0.5, \"why\": \"Covers job ID, cluster, clip values, results directory, and no-resubmit rule. Missing the ETA (~2 hours) and the detail that it runs on the clean set.\"}, \"q7\": {\"score\": 1, \"why\": \"Both key points present: module load cuda/12.1 (with silent CPU fallback), and exclude gl1007 GPU 3 (ECC errors).\"}, \"q8\": {\"score\": 0.5, \"why\": \"The key says the leading hypothesis is fp16 overflow in attention softmax. The answer reframes it as gradient explosion due to grad_clip:null being the leading hypothesis, which contradicts the key's framing. Counter-evidence (bf16 still diverged) is correctly stated.\"}, \"q9\": {\"score\": 1, \"why\": \"Correctly states it has not been established and is an unverified assumption.\"}, \"q10\": {\"score\": 1, \"why\": \"Correct steps (3012, 5020), correct layer (layer11.attn), correct method (check_nan.py).\"}, \"q11\": {\"score\": 1, \"why\": \"All key points: compare clip values, clip 1.0 stable past step 6k triggers rerun, done when Table 2 row 3 has a number.\"}, \"q12\": {\"score\": 1, \"why\": \"ACL submission, Oct 3 deadline, feeds Table 2 numbers.\"}}"
+ ],
+ "exam_wall_s": 22.4
+}

@@ -1,0 +1,10 @@
+{
+  "name": "shift-change",
+  "version": "0.1.0",
+  "description": "I-PASS handovers for coding agents, verified by a fresh-agent exam.",
+  "author": { "name": "ruijiezh67", "url": "https://github.com/ruijiezh67" },
+  "homepage": "https://github.com/ruijiezh67/shift-change",
+  "repository": "https://github.com/ruijiezh67/shift-change",
+  "license": "MIT",
+  "keywords": ["handover", "handoff", "context", "session", "research"]
+}

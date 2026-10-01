@@ -1,0 +1,18 @@
+{
+  "id": "ml-divergence",
+  "summary": "Debugging loss divergence in a training run for a paper deadline. Bilingual user. A /compact in the middle pushes the first taste corrections and the rejected path out of the live context.",
+  "turns": [
+    "We're debugging loss divergence for our ACL submission. Deadline is Oct 3 and we need the Table 2 numbers from this model. Please read configs/base.yaml, runs/run17/log.txt and runs/run19/log.txt and tell me what you think is going on.",
+    "太长了。以后先给结论，5行以内，细节我问了再说。另外跟我说话用中文，代码注释用英文。",
+    "Also, don't suggest lowering the learning rate. Run 17 already used 1e-5 and still diverged around step 3k. Only revisit lr if we change the data pipeline.",
+    "术语约定：'the clean set' 指 data/v3_dedup.jsonl（4,812 行）。v3.jsonl 有重复样本，永远不要用它训练。configs/base.yaml 现在指向的是 v3.jsonl，请把它改成 clean set。",
+    "/compact",
+    "My current hypothesis: fp16 overflow in the attention softmax. For: the NaNs show up first in layer 11 attention. Against: run 19 was bf16 and still diverged, just later (around step 5k). Write a small script check_nan.py that finds the first NaN step and layer in a log file, and run it on both logs.",
+    "Add gradient-norm logging to train.py (log grad_norm every 250 steps next to the loss).",
+    "好。提醒一下：修东西永远最小改动，不要顺手重构别的代码；想重构就单独提出来，别直接做。",
+    "Heads up for later: on greatlakes you must run `module load cuda/12.1` before launching, otherwise it silently falls back to CPU. And GPU 3 on node gl1007 has ECC errors, so always exclude it.",
+    "I just submitted the gradient-clipping sweep (clip = 0.5, 1.0, 2.0, on the clean set) as slurm job 481516 on greatlakes. Results will land in runs/sweep_clip/, ETA about 2 hours. Don't resubmit it.",
+    "我觉得最近的 tokenizer 改动跟发散无关，不过还没验证过。",
+    "OK, I have to stop for today. Plan for next session: when the sweep finishes, compare the three clip values on the clean set; if clip 1.0 stays stable past step 6k, rerun the Table 2 config with clip 1.0. Done when Table 2 row 3 has a number."
+  ]
+}

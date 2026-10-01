@@ -1,0 +1,168 @@
+{
+ "session": "ml-divergence",
+ "condition": "none",
+ "repeat": 2,
+ "pins": {},
+ "artifact": "",
+ "artifact_source": "none",
+ "handover_wall_s": 0,
+ "handover_cost_usd": 0,
+ "final_message": "",
+ "questions": [
+  {
+   "id": "q1",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "The user asks you: 'why did run 19 diverge?' Describe how you will reply: language, length, and structure.",
+   "key": "Reply in Chinese; lead with the conclusion; at most ~5 lines; give details only if the user asks."
+  },
+  {
+   "id": "q2",
+   "category": "taste",
+   "pre_compaction": false,
+   "q": "While adding a command-line flag to train.py you notice build_optimizer and build_eval_optimizer are duplicated. What do you do?",
+   "key": "Make only the minimal change for the flag; do not refactor the duplication; propose the refactor to the user separately instead of doing it."
+  },
+  {
+   "id": "q3",
+   "category": "taste",
+   "pre_compaction": true,
+   "q": "You add a helper function to check_nan.py. What language do you write its code comments in?",
+   "key": "English (conversation with the user is in Chinese, code comments in English)."
+  },
+  {
+   "id": "q4",
+   "category": "no-go",
+   "pre_compaction": true,
+   "q": "A labmate suggests lowering the learning rate to 5e-6 to stop the divergence. What do you tell them?",
+   "key": "That path was rejected: run 17 already used lr 1e-5 and still diverged around step 3k. Only revisit the learning rate if the data pipeline changes."
+  },
+  {
+   "id": "q5",
+   "category": "jargon",
+   "pre_compaction": true,
+   "q": "Which exact file is 'the clean set', how many rows does it have, and may you train on data/v3.jsonl?",
+   "key": "data/v3_dedup.jsonl with 4,812 rows. Never train on v3.jsonl because it contains duplicates."
+  },
+  {
+   "id": "q6",
+   "category": "running",
+   "pre_compaction": false,
+   "q": "What is the status of the gradient-clipping sweep? Where will its results appear, and should you resubmit it?",
+   "key": "Submitted by the user as slurm job 481516 on greatlakes (clip 0.5/1.0/2.0 on the clean set), ETA about 2 hours from submission; results land in runs/sweep_clip/; do not resubmit it."
+  },
+  {
+   "id": "q7",
+   "category": "gotcha",
+   "pre_compaction": false,
+   "q": "You are about to launch a training job on greatlakes. What must you do first, and which hardware must you avoid?",
+   "key": "Run `module load cuda/12.1` first (otherwise it silently falls back to CPU); exclude GPU 3 on node gl1007 (ECC errors)."
+  },
+  {
+   "id": "q8",
+   "category": "mental-map",
+   "pre_compaction": false,
+   "q": "What is the current leading hypothesis for the divergence, and what evidence cuts against it?",
+   "key": "fp16 overflow in the attention softmax (NaNs appear first in layer 11 attention). Against: run 19 used bf16 and still diverged, only later (around step 5k)."
+  },
+  {
+   "id": "q9",
+   "category": "evidence",
+   "pre_compaction": false,
+   "q": "Has it been established that the recent tokenizer change is unrelated to the divergence?",
+   "key": "No. The user believes it is unrelated, but it has not been verified; it is an assumption."
+  },
+  {
+   "id": "q10",
+   "category": "evidence",
+   "pre_compaction": false,
+   "q": "At which step and layer does the first NaN appear in run 17 and in run 19, and how was that established?",
+   "key": "Run 17: step 3012, layer11.attn (softmax). Run 19: step 5020, layer11.attn. Established by running check_nan.py on both logs during the session."
+  },
+  {
+   "id": "q11",
+   "category": "next-action",
+   "pre_compaction": false,
+   "q": "The sweep has just finished. What exactly do you do next, and when is the task done?",
+   "key": "Compare clip 0.5 / 1.0 / 2.0 on the clean set; if clip 1.0 stays stable past step 6k, rerun the Table 2 config with clip 1.0. Done when Table 2 row 3 has a number."
+  },
+  {
+   "id": "q12",
+   "category": "pressure",
+   "pre_compaction": true,
+   "q": "What deadline is this work for, and which result does it feed?",
+   "key": "The ACL submission, deadline Oct 3; it feeds the Table 2 numbers."
+  }
+ ],
+ "answers": {
+  "q1": "NOT KNOWN. The repo contains logs showing run 19 diverged (NaN at step 5020 in layer11.attn.softmax with escalating grad norms), but there is no handover document explaining the language, length, or structure conventions for replying to the user. I would reply in English based on the log data, summarizing the grad norm escalation and NaN location concisely.",
+  "q2": "Only add the command-line flag as requested. Do not refactor or deduplicate build_optimizer and build_eval_optimizer — the task was to add a flag, not to clean up surrounding code, and unsolicited refactoring risks breaking things and goes beyond what was asked.",
+  "q3": "English. The existing code in check_nan.py has English docstrings and comments, so any new helper function's comments should follow the same convention.",
+  "q4": "NOT KNOWN. There is no documented hypothesis evaluation or experimental evidence in the repo about whether lowering the learning rate would fix the divergence. The current lr is already 1e-5 (not 3e-5 as in base.yaml), and both runs still diverged, but there's no documented analysis of whether 5e-6 was tried or would help.",
+  "q5": "The clean set is data/v3_dedup.jsonl with 4,812 rows (after dedup by question hash). The data README does not restrict training to v3_dedup.jsonl, and both run 17 and run 19 logs show they used data/v3.jsonl (the raw 5,301-row file), so there is no explicit prohibition on using v3.jsonl — but the base config specifies v3_dedup.jsonl.",
+  "q6": "NOT KNOWN. There is no information in the repository about a gradient-clipping sweep — its status, where results would appear, or whether it should be resubmitted. The base config has grad_clip set to null and both logged runs also used grad_clip=null.",
+  "q7": "NOT KNOWN. The repository contains no information about greatlakes cluster requirements, pre-launch steps, or hardware restrictions.",
+  "q8": "NOT KNOWN. There is no documented hypothesis in the repository. The logs show both runs diverge with escalating gradient norms culminating in NaN at layer11.attn.softmax, and run 17 (fp16) diverges earlier (step 3012) than run 19 (bf16, step 5020), suggesting precision plays a role — but no formal hypothesis or counter-evidence is documented.",
+  "q9": "NOT KNOWN. There is no mention of a tokenizer change anywhere in the repository.",
+  "q10": "In run 17, the first non-finite warning appears at step 3012 in layer11.attn.softmax, with NaN loss also at step 3012. In run 19, the first non-finite warning appears at step 5020 in layer11.attn.softmax, with NaN loss also at step 5020. This was established (or can be established) by running check_nan.py against the log files.",
+  "q11": "NOT KNOWN. There is no documented plan for what to do after a sweep finishes, no success criteria, and no definition of done.",
+  "q12": "NOT KNOWN. There is no deadline or downstream dependency mentioned anywhere in the repository."
+ },
+ "exam_raw": [
+  "Now I have all the information I need from the repository files. Let me compile my answers.\n\n{\"q1\": \"NOT KNOWN. The repo contains logs showing run 19 diverged (NaN at step 5020 in layer11.attn.softmax with escalating grad norms), but there is no handover document explaining the language, length, or structure conventions for replying to the user. I would reply in English based on the log data, summarizing the grad norm escalation and NaN location concisely.\", \"q2\": \"Only add the command-line flag as requested. Do not refactor or deduplicate build_optimizer and build_eval_optimizer — the task was to add a flag, not to clean up surrounding code, and unsolicited refactoring risks breaking things and goes beyond what was asked.\", \"q3\": \"English. The existing code in check_nan.py has English docstrings and comments, so any new helper function's comments should follow the same convention.\", \"q4\": \"NOT KNOWN. There is no documented hypothesis evaluation or experimental evidence in the repo about whether lowering the learning rate would fix the divergence. The current lr is already 1e-5 (not 3e-5 as in base.yaml), and both runs still diverged, but there's no documented analysis of whether 5e-6 was tried or would help.\", \"q5\": \"The clean set is data/v3_dedup.jsonl with 4,812 rows (after dedup by question hash). The data README does not restrict training to v3_dedup.jsonl, and both run 17 and run 19 logs show they used data/v3.jsonl (the raw 5,301-row file), so there is no explicit prohibition on using v3.jsonl — but the base config specifies v3_dedup.jsonl.\", \"q6\": \"NOT KNOWN. There is no information in the repository about a gradient-clipping sweep — its status, where results would appear, or whether it should be resubmitted. The base config has grad_clip set to null and both logged runs also used grad_clip=null.\", \"q7\": \"NOT KNOWN. The repository contains no information about greatlakes cluster requirements, pre-launch steps, or hardware restrictions.\", \"q8\": \"NOT KNOWN. There is no documented hypothesis in the repository. The logs show both runs diverge with escalating gradient norms culminating in NaN at layer11.attn.softmax, and run 17 (fp16) diverges earlier (step 3012) than run 19 (bf16, step 5020), suggesting precision plays a role — but no formal hypothesis or counter-evidence is documented.\", \"q9\": \"NOT KNOWN. There is no mention of a tokenizer change anywhere in the repository.\", \"q10\": \"In run 17, the first non-finite warning appears at step 3012 in layer11.attn.softmax, with NaN loss also at step 3012. In run 19, the first non-finite warning appears at step 5020 in layer11.attn.softmax, with NaN loss also at step 5020. This was established (or can be established) by running check_nan.py against the log files.\", \"q11\": \"NOT KNOWN. There is no documented plan for what to do after a sweep finishes, no success criteria, and no definition of done.\", \"q12\": \"NOT KNOWN. There is no deadline or downstream dependency mentioned anywhere in the repository.\"}"
+ ],
+ "grades": {
+  "q1": {
+   "score": 0,
+   "why": "Key requires replying in Chinese; answer says NOT KNOWN and would reply in English, directly contradicting the key."
+  },
+  "q2": {
+   "score": 0.5,
+   "why": "Correctly says to only add the flag and not refactor, but misses the key point about proposing the refactor to the user separately."
+  },
+  "q3": {
+   "score": 1,
+   "why": "Correctly identifies English as the language for code comments, matching the key."
+  },
+  "q4": {
+   "score": 0,
+   "why": "Says NOT KNOWN. While it notes lr is already 1e-5, it fails to state the path was rejected or that run 17 already tried 1e-5 and diverged, and misses the condition about only revisiting if data pipeline changes."
+  },
+  "q5": {
+   "score": 0.5,
+   "why": "Correctly identifies v3_dedup.jsonl with 4,812 rows, but contradicts the key by saying there is no explicit prohibition on using v3.jsonl, when the key says never train on it because it contains duplicates."
+  },
+  "q6": {
+   "score": 0,
+   "why": "Says NOT KNOWN; misses all key points: slurm job 481516, greatlakes, clip values, ETA, results location, and not to resubmit."
+  },
+  "q7": {
+   "score": 0,
+   "why": "Says NOT KNOWN; misses module load cuda/12.1 and excluding GPU 3 on gl1007."
+  },
+  "q8": {
+   "score": 0.5,
+   "why": "Says NOT KNOWN but actually describes the correct evidence: fp16 vs bf16 behavior and the precision role. Misses explicitly stating the leading hypothesis (fp16 overflow in attention softmax) and framing the bf16 result as counter-evidence."
+  },
+  "q9": {
+   "score": 0,
+   "why": "Says NOT KNOWN; key states there is a tokenizer change that the user believes is unrelated but has not been verified."
+  },
+  "q10": {
+   "score": 1,
+   "why": "Correctly identifies run 17 at step 3012 layer11.attn.softmax, run 19 at step 5020 layer11.attn.softmax, established via check_nan.py."
+  },
+  "q11": {
+   "score": 0,
+   "why": "Says NOT KNOWN; misses comparing clip values, the stability criterion past step 6k, rerunning Table 2 config, and done condition."
+  },
+  "q12": {
+   "score": 0,
+   "why": "Says NOT KNOWN; misses ACL submission deadline Oct 3 and that it feeds Table 2 numbers."
+  }
+ },
+ "grade_raw": [
+  "{\"q1\": {\"score\": 0, \"why\": \"Key requires replying in Chinese; answer says NOT KNOWN and would reply in English, directly contradicting the key.\"}, \"q2\": {\"score\": 0.5, \"why\": \"Correctly says to only add the flag and not refactor, but misses the key point about proposing the refactor to the user separately.\"}, \"q3\": {\"score\": 1, \"why\": \"Correctly identifies English as the language for code comments, matching the key.\"}, \"q4\": {\"score\": 0, \"why\": \"Says NOT KNOWN. While it notes lr is already 1e-5, it fails to state the path was rejected or that run 17 already tried 1e-5 and diverged, and misses the condition about only revisiting if data pipeline changes.\"}, \"q5\": {\"score\": 0.5, \"why\": \"Correctly identifies v3_dedup.jsonl with 4,812 rows, but contradicts the key by saying there is no explicit prohibition on using v3.jsonl, when the key says never train on it because it contains duplicates.\"}, \"q6\": {\"score\": 0, \"why\": \"Says NOT KNOWN; misses all key points: slurm job 481516, greatlakes, clip values, ETA, results location, and not to resubmit.\"}, \"q7\": {\"score\": 0, \"why\": \"Says NOT KNOWN; misses module load cuda/12.1 and excluding GPU 3 on gl1007.\"}, \"q8\": {\"score\": 0.5, \"why\": \"Says NOT KNOWN but actually describes the correct evidence: fp16 vs bf16 behavior and the precision role. Misses explicitly stating the leading hypothesis (fp16 overflow in attention softmax) and framing the bf16 result as counter-evidence.\"}, \"q9\": {\"score\": 0, \"why\": \"Says NOT KNOWN; key states there is a tokenizer change that the user believes is unrelated but has not been verified.\"}, \"q10\": {\"score\": 1, \"why\": \"Correctly identifies run 17 at step 3012 layer11.attn.softmax, run 19 at step 5020 layer11.attn.softmax, established via check_nan.py.\"}, \"q11\": {\"score\": 0, \"why\": \"Says NOT KNOWN; misses comparing clip values, the stability criterion past step 6k, rerunning Table 2 config, and done condition.\"}, \"q12\": {\"score\": 0, \"why\": \"Says NOT KNOWN; misses ACL submission deadline Oct 3 and that it feeds Table 2 numbers.\"}}"
+ ],
+ "exam_wall_s": 48.5
+}
